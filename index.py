@@ -1,30 +1,55 @@
-import logging
-import requests
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+from telegram.ext import CallbackContext
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Function to fetch the price (replace with your actual API call)
+async def fetch_price():
+    # Example price fetching logic
+    return "94.700000"  # Example price value
 
-TELEGRAM_TOKEN = '7582488141:AAFgH0iI85zTnyMkhBFK4UVF7zlSmmitoOw'  # Replace with your Telegram bot token
+# Start command handler
+async def start(update: Update, context: CallbackContext):
+    await update.message.reply("Welcome! Type /price to get the current price.")
 
-async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    url = "https://www.zebapi.com/api/v1/market/USDT-INR/ticker?group=singapore"
-    response = requests.get(url)
-    data = response.json()
+# Price command handler (with buttons)
+async def price_with_buttons(update: Update, context: CallbackContext):
+    # Inline buttons for "Refresh" and "Delete"
+    refresh_button = InlineKeyboardButton("Refresh Price", callback_data="refresh_price")
+    delete_button = InlineKeyboardButton("Delete Price", callback_data="delete_price")
+    keyboard = InlineKeyboardMarkup([[refresh_button, delete_button]])
 
-    if response.status_code == 200 and "sell" in data:
-        price = data['sell']
-        await update.message.reply_text(f"Current sell price: ₹{price}")
-    else:
-        await update.message.reply_text("Could not fetch price data.")
+    price = await fetch_price()  # Fetch price from the API
+    message = await update.message.reply(f"The current price is: {price}", reply_markup=keyboard)
 
-def main():
-    """Start the bot."""
-    application = Application.builder().token(TELEGRAM_TOKEN).build()
-    application.add_handler(CommandHandler("price", price))
-    application.run_polling()
+    # Store the message ID in context for later use (if needed)
+    context.user_data["price_message_id"] = message.message_id
+
+# Callback function for the "Refresh" button
+async def refresh_price(update: Update, context: CallbackContext):
+    price = await fetch_price()  # Fetch updated price
+    await update.callback_query.answer()  # Acknowledge the button click
+    await update.callback_query.edit_message_text(f"The current price is: {price}")  # Update the message
+
+# Callback function for the "Delete" button
+async def delete_price(update: Update, context: CallbackContext):
+    await update.callback_query.answer()  # Acknowledge the button click
+    # Delete the message that contains the price and buttons
+    await update.callback_query.message.delete()
+
+# Main function to set up the bot
+async def main():
+    application = Application.builder().token("YOUR_BOT_API_KEY").build()
+
+    # Command handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("price", price_with_buttons))  # Command to show price with buttons
+    
+    # Callback handlers for buttons
+    application.add_handler(CallbackQueryHandler(refresh_price, pattern="refresh_price"))
+    application.add_handler(CallbackQueryHandler(delete_price, pattern="delete_price"))
+    
+    await application.run_polling()
 
 if __name__ == '__main__':
-    main()
+    import asyncio
+    asyncio.run(main())
