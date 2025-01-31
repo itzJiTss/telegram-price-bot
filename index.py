@@ -38,7 +38,7 @@ async def delete_price(update: Update, context: CallbackContext):
 
 # Main function to set up the bot
 async def main():
-    application = Application.builder().token("YOUR_BOT_API_KEY").build()
+    application = Application.builder().token(7582488141:AAFgH0iI85zTnyMkhBFK4UVF7zlSmmitoOw).build()
 
     # Command handlers
     application.add_handler(CommandHandler("start", start))
