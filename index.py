@@ -8,10 +8,10 @@ application = Application.builder().token("7582488141:AAFgH0iI85zTnyMkhBFK4UVF7z
 
 # Function to fetch price data
 def fetch_price():
-    url = 'https://api.example.com/price'
+    url = 'https://api.example.com/price'  # Replace with the actual API URL
     response = requests.get(url)
     data = response.json()
-    return data['sell']  # Assuming the price is under 'sell' in the response
+    return data['sell']  # Adjust based on your API response structure
 
 # Command handler for /price
 async def price(update, context):
@@ -38,8 +38,11 @@ async def main():
     application.add_handler(CommandHandler("price", price))
     application.add_handler(CallbackQueryHandler(button))
 
-    # Run the bot
-    await application.run_polling()
+    try:
+        # Run the bot
+        await application.run_polling()
+    finally:
+        await application.shutdown()
 
 # Run the bot with the asyncio loop
 if __name__ == '__main__':
