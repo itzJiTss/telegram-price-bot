@@ -23,7 +23,6 @@ async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         low_24h = data.get("24hoursLow", "N/A")
 
         message = (
-            f"📊 **Market Data**\n"
             f"🔹 **Pair:** {pair}\n"
             f"💰 **Current Price:** ₹{current_price}\n"
             f"📈 **24H High:** ₹{high_24h}\n"
