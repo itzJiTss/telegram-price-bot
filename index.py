@@ -7,7 +7,7 @@ from telegram.ext import Application, CommandHandler, ContextTypes, ChatMemberHa
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = "YOUR_BOT_TOKEN"  # Replace with your bot token
+TELEGRAM_TOKEN = "7582488141:AAFgH0iI85zTnyMkhBFK4UVF7zlSmmitoOw"  # Replace with your bot token
 
 # Store groups dynamically
 group_chats = set()
