@@ -70,8 +70,8 @@ async def send_price_updates(context: ContextTypes.DEFAULT_TYPE) -> None:
             except Exception as e:
                 logger.warning(f"Could not send message to {chat_id}: {e}")
 
-async def start_scheduled_task(application):
-    """Start the hourly price update task."""
+async def start_scheduled_task(application: Application) -> None:
+    """Run the scheduled price update task inside the bot's event loop."""
     while True:
         await send_price_updates(application)
         await asyncio.sleep(1800)  # Wait 1 hour before sending again
@@ -84,8 +84,8 @@ def main():
     application.add_handler(CommandHandler("calcu", calcu))
     application.add_handler(ChatMemberHandler(track_group, ChatMemberHandler.CHAT_MEMBER))
 
-    # Start background task for scheduled updates
-    asyncio.create_task(start_scheduled_task(application))
+    # Add background task for scheduled updates
+    application.job_queue.run_repeating(send_price_updates, interval=3600, first=10)
 
     application.run_polling()
 
