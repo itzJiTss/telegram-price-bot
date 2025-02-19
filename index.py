@@ -11,6 +11,9 @@ logger = logging.getLogger(__name__)
 # Replace with your Telegram bot token
 TELEGRAM_TOKEN = '7582488141:AAFgH0iI85zTnyMkhBFK4UVF7zlSmmitoOw'
 
+# Chat ID where automatic updates should be sent
+CHAT_ID = 123456789  # Replace with your actual Telegram Chat ID
+
 # /price command - Fetch and display the latest market price
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     url = "https://www.zebapi.com/api/v1/market/USDT-INR/ticker?group=singapore"
@@ -61,7 +64,6 @@ async def calcu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 # Function to send periodic price updates
 async def send_price_updates(context: ContextTypes.DEFAULT_TYPE) -> None:
-    chat_id = YOUR_CHAT_ID  # Replace this with the actual chat ID where updates should be sent
     url = "https://www.zebapi.com/api/v1/market/USDT-INR/ticker?group=singapore"
     response = requests.get(url)
     data = response.json()
@@ -78,16 +80,19 @@ async def send_price_updates(context: ContextTypes.DEFAULT_TYPE) -> None:
             f"📉 24H Low: ₹{low_24h:.2f}"
         )
 
-        await context.bot.send_message(chat_id=chat_id, text=message)
+        await context.bot.send_message(chat_id=CHAT_ID, text=message)
 
 # Main function to start the bot
 def main():
     """Start the bot."""
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # ✅ Initialize JobQueue
+    # ✅ Initialize JobQueue properly
     job_queue = application.job_queue
-    job_queue.run_repeating(send_price_updates, interval=3600, first=10)
+    if job_queue is not None:
+        job_queue.run_repeating(send_price_updates, interval=3600, first=10)
+    else:
+        logger.error("JobQueue not initialized! Make sure to install python-telegram-bot[job-queue]")
 
     # Add command handlers
     application.add_handler(CommandHandler("price", price))
