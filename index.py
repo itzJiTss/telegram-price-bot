@@ -1,90 +1,76 @@
 import logging
 import requests
-import asyncio
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, ChatMemberHandler, JobQueue
+from telegram.ext import Application, CommandHandler, ContextTypes
 
-logging.basicConfig(level=logging.INFO)
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = "7582488141:AAFgH0iI85zTnyMkhBFK4UVF7zlSmmitoOw"  # Replace with your bot token
+# Replace with your Telegram bot token
+TELEGRAM_TOKEN = '7582488141:AAFgH0iI85zTnyMkhBFK4UVF7zlSmmitoOw'
 
-# Store groups dynamically
-group_chats = set()
-
+# /price command - Fetch and display the latest market price
 async def price(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Fetch and send current USDT-INR price."""
     url = "https://www.zebapi.com/api/v1/market/USDT-INR/ticker?group=singapore"
     response = requests.get(url)
     data = response.json()
 
     if response.status_code == 200 and "sell" in data:
-        price = float(data["sell"])
-        high = float(data["24hoursHigh"])
-        low = float(data["24hoursLow"])
-        message = f"🔹 Pair: USDT-INR\n💰 Current Price: ₹{price}\n📈 24H High: ₹{high}\n📉 24H Low: ₹{low}"
-        await update.message.reply_text(message)
+        price = float(data['sell'])
+        high_24h = float(data["24hoursHigh"])
+        low_24h = float(data["24hoursLow"])
+
+        await update.message.reply_text(
+            f"🔹 Pair: USDT-INR\n"
+            f"💰 Current Price: ₹{price:.2f}\n"
+            f"📈 24H High: ₹{high_24h:.2f}\n"
+            f"📉 24H Low: ₹{low_24h:.2f}"
+        )
     else:
-        await update.message.reply_text("❌ Could not fetch price data.")
+        await update.message.reply_text("Could not fetch price data.")
 
+# /calcu command - Multiply fetched price with user input
 async def calcu(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Calculate value based on user input and current price."""
+    if not context.args:
+        await update.message.reply_text("Please provide a number. Example: /calcu 100")
+        return
+
     try:
-        amount = float(context.args[0])  # Get user input (e.g., /calcu 100)
-        url = "https://www.zebapi.com/api/v1/market/USDT-INR/ticker?group=singapore"
-        response = requests.get(url)
-        data = response.json()
+        multiplier = float(context.args[0])
+    except ValueError:
+        await update.message.reply_text("Invalid input. Please enter a valid number.")
+        return
 
-        if response.status_code == 200 and "sell" in data:
-            price = float(data["sell"])
-            total = price * amount
-            message = f"💰 Current Price: ₹{price}\n🔢 Your Input: {amount}\n🧮 Calculated Value: ₹{total:.2f}"
-            await update.message.reply_text(message)
-        else:
-            await update.message.reply_text("❌ Could not fetch price data.")
-    except (IndexError, ValueError):
-        await update.message.reply_text("⚠️ Usage: /calcu <amount>\nExample: /calcu 100")
-
-async def track_group(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Track new groups when the bot is added."""
-    chat = update.chat
-    if chat.type in ["group", "supergroup"]:
-        group_chats.add(chat.id)
-        logger.info(f"Added to group: {chat.title} (ID: {chat.id})")
-
-async def send_price_updates(context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Send price updates to all groups every hour."""
     url = "https://www.zebapi.com/api/v1/market/USDT-INR/ticker?group=singapore"
     response = requests.get(url)
     data = response.json()
 
     if response.status_code == 200 and "sell" in data:
-        price = float(data["sell"])
-        high = float(data["24hoursHigh"])
-        low = float(data["24hoursLow"])
-        message = f"🔹 Pair: USDT-INR\n💰 Current Price: ₹{price}\n📈 24H High: ₹{high}\n📉 24H Low: ₹{low}"
+        price = float(data['sell'])
+        result = multiplier * price
 
-        for chat_id in group_chats:
-            try:
-                await context.bot.send_message(chat_id, message)
-            except Exception as e:
-                logger.warning(f"Could not send message to {chat_id}: {e}")
+        await update.message.reply_text(
+            f"💰 Current Price: ₹{price:.2f}\n"
+            f"🔢 Your Input: {multiplier:.1f}\n"
+            f"🧮 Calculated Value: ₹{result:.2f}"
+        )
+    else:
+        await update.message.reply_text("Could not fetch price data.")
 
+# Main function to start the bot
 def main():
     """Start the bot."""
     application = Application.builder().token(TELEGRAM_TOKEN).build()
 
-    # ✅ Ensure JobQueue is properly set up
-    job_queue = application.job_queue
-
+    # Add command handlers
     application.add_handler(CommandHandler("price", price))
     application.add_handler(CommandHandler("calcu", calcu))
-    application.add_handler(ChatMemberHandler(track_group, ChatMemberHandler.CHAT_MEMBER))
 
-    # ✅ Use job_queue correctly
-    job_queue.run_repeating(send_price_updates, interval=3600, first=10)
-
+    # Start polling
     application.run_polling()
 
-if __name__ == "__main__":
+# Run the bot
+if __name__ == '__main__':
     main()
