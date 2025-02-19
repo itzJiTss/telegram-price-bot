@@ -2,12 +2,12 @@ import logging
 import requests
 import asyncio
 from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes, ChatMemberHandler
+from telegram.ext import Application, CommandHandler, ContextTypes, ChatMemberHandler, JobQueue
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELEGRAM_TOKEN = "7582488141:AAFgH0iI85zTnyMkhBFK4UVF7zlSmmitoOw"  # Replace with your bot token
+TELEGRAM_TOKEN = "YOUR_BOT_TOKEN"  # Replace with your bot token
 
 # Store groups dynamically
 group_chats = set()
@@ -70,22 +70,19 @@ async def send_price_updates(context: ContextTypes.DEFAULT_TYPE) -> None:
             except Exception as e:
                 logger.warning(f"Could not send message to {chat_id}: {e}")
 
-async def start_scheduled_task(application: Application) -> None:
-    """Run the scheduled price update task inside the bot's event loop."""
-    while True:
-        await send_price_updates(application)
-        await asyncio.sleep(1800)  # Wait 1 hour before sending again
-
 def main():
     """Start the bot."""
     application = Application.builder().token(TELEGRAM_TOKEN).build()
+
+    # ✅ Ensure JobQueue is properly set up
+    job_queue = application.job_queue
 
     application.add_handler(CommandHandler("price", price))
     application.add_handler(CommandHandler("calcu", calcu))
     application.add_handler(ChatMemberHandler(track_group, ChatMemberHandler.CHAT_MEMBER))
 
-    # Add background task for scheduled updates
-    application.job_queue.run_repeating(send_price_updates, interval=3600, first=10)
+    # ✅ Use job_queue correctly
+    job_queue.run_repeating(send_price_updates, interval=3600, first=10)
 
     application.run_polling()
 
